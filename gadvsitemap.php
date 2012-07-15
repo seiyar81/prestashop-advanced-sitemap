@@ -47,8 +47,8 @@ class gadvsitemap extends Module
 
 		parent::__construct();
 
-		$this->displayName = $this->l('Google Advanced Sitemap');
-		$this->description = $this->l('Generate your Google sitemap file');
+		$this->displayName = $this->l('Prestashop Advanced Sitemap');
+		$this->description = $this->l('Generate your sitemap file with advanced options');
 
 		if (!defined('GSITEMAP_FILE'))
 			define('GSITEMAP_FILE', dirname(__FILE__).'/../../sitemap.xml');
