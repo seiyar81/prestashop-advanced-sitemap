@@ -28,17 +28,20 @@
 if (!defined('_PS_VERSION_'))
 	exit;
 
+require_once 'gadvLink.php';
+	
 class gadvsitemap extends Module
 {
 	private $_html = '';
 	private $_postErrors = array();
 	private $_nbImages = 0;
+	private $_nbLocs = 0;
 
 	public function __construct()
 	{
 		$this->name = 'gadvsitemap';
 		$this->tab = 'seo';
-		$this->version = '1.0';
+		$this->version = '1.4';
 		$this->author = 'Yriase';
 		$this->need_instance = 0;
 
@@ -93,10 +96,18 @@ class gadvsitemap extends Module
 		Configuration::updateValue('GADVSITEMAP_NOTIFY', (int)Tools::getValue('GADVSITEMAP_NOTIFY'));
         Configuration::updateValue('GADVSITEMAP_NOTIFY_BING', (int)Tools::getValue('GADVSITEMAP_NOTIFY_BING'));
         Configuration::updateValue('GADVSITEMAP_NOTIFY_ASK', (int)Tools::getValue('GADVSITEMAP_NOTIFY_ASK'));
-		$link = new Link();
+		$gadvlink = new gadvLink(Tools::getShopDomain(true, true).__PS_BASE_URI__);
+		$link	  = new Link();
 		$langs = Language::getLanguages(true);
-		foreach($langs as $lang) {
+		foreach($langs as $lang) 
+		{
 			Configuration::updateValue($lang['iso_code'], (int)Tools::getValue($lang['iso_code']));
+			
+			if(Tools::getIsset($lang['iso_code'].'_url'))
+			{
+				Configuration::updateValue('GADVSITEMAP_'.$lang['iso_code'].'_URL', Tools::getValue($lang['iso_code'].'_url'));
+				$gadvlink->setLangUrl($lang['id_lang'], Tools::getValue($lang['iso_code'].'_url'));
+			}
 		}
 		
 		$this->_nbImages = 0;
@@ -110,17 +121,21 @@ XML;
 
 		$xml = new SimpleXMLElement($xmlString);
 		$lang_list = '';
-		if (Configuration::get('PS_REWRITING_SETTINGS') && count($langs) > 1) {
-			foreach($langs as $lang) {
-				if (Configuration::get($lang['iso_code'])) {
-					$this->_addSitemapNode($xml, Tools::getShopDomain(true, true).__PS_BASE_URI__.$lang['iso_code'].'/', '1.00', 'daily', date('Y-m-d'));
+		if (Configuration::get('PS_REWRITING_SETTINGS') && count($langs) > 1) 
+		{
+			foreach($langs as $lang) 
+			{
+				if (Configuration::get($lang['iso_code'])) 
+				{
+					$langUrl = $gadvlink->getLangUrl($lang);
+					$this->_addSitemapNode($xml, $langUrl, '1.00', 'daily', date('Y-m-d'));
 					$lang_list .= ($lang_list != '' ) ? ', ' : '';
 					$lang_list .= $lang['id_lang'];
 				}
 			}
 		}
 		else
-			$this->_addSitemapNode($xml, Tools::getShopDomain(true, true).__PS_BASE_URI__, '1.00', 'daily', date('Y-m-d'));
+			$this->_addSitemapNode($xml, $gadvlink->getBaseUrl(), '1.00', 'daily', date('Y-m-d'));
 			
 		if ($lang_list != '') $lang_list = 'and l.id_lang in ('.$lang_list.')';
 
@@ -165,12 +180,27 @@ XML;
 
 		foreach ($res as $product)
 		{
-			if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
-				$priority = 0.1;
-
-			$tmpLink = $link->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], (int)($product['id_lang']));
-			$sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
-			$sitemap = $this->_addSitemapNodeImage($sitemap, $product);
+			if (Configuration::get('PS_REWRITING_SETTINGS'))
+			{
+				foreach($langs as $lang) 
+				{
+					if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
+						$priority = 0.1;
+		
+					$tmpLink = $gadvlink->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], $lang['id_lang']);
+					$sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
+					$sitemap = $this->_addSitemapNodeImage($sitemap, $product);
+				}
+			}
+			else
+			{
+				if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
+						$priority = 0.1;
+		
+					$tmpLink = $link->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], (int)($product['id_lang']));
+					$sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
+					$sitemap = $this->_addSitemapNodeImage($sitemap, $product);
+			}
 		}
 
 		/* Categories Generator */
@@ -249,14 +279,8 @@ XML;
 			foreach($pages as $page => $ssl)
 				$this->_addSitemapNode($xml, $link->getPageLink($page.'.php', $ssl), '0.5', 'monthly');
 
-		//$xmlString = $xml->asXML();
-
 		$this->_saveFormattedSitemap($xml);
 		
-		/*$fp = fopen(GSITEMAP_FILE, 'w');
-		fwrite($fp, $xmlString);
-		fclose($fp);*/
-
 	    if(Configuration::get('GADVSITEMAP_NOTIFY')) 
 	    {
             if(@file_get_contents('http://www.google.com/webmasters/tools/ping?sitemap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
@@ -314,6 +338,7 @@ XML;
 	
 	private function _addSitemapNode($xml, $loc, $priority, $change_freq, $last_mod = NULL)
 	{
+		$this->_nbLocs++;
 		$sitemap = $xml->addChild('url');
 		$sitemap->addChild('loc', $loc);
 		$sitemap->addChild('priority', number_format($priority,1,'.',''));
@@ -354,7 +379,7 @@ XML;
 			
 			$this->_html .= $this->l('Update:').' <b>'.utf8_encode(strftime('%A %d %B %Y %H:%M:%S', $fstat['mtime'])).'</b><br />';
 			$this->_html .= $this->l('Filesize:').' <b>'.number_format(($fstat['size']*.000001), 3).'MB</b><br />';
-			$this->_html .= $this->l('Indexed pages:').' <b>'.$nbPages.'</b><br />';
+			$this->_html .= $this->l('Indexed pages:').' <b>'.$this->_nbLocs.'</b><br />';
 			if (Tools::isSubmit('btnSubmit'))
 				$this->_html .= $this->l('Indexed images:').' <b>'.$this->_nbImages.'</b><br /><br />';
 			else
@@ -387,12 +412,33 @@ XML;
 			
 			<h2>'.$this->l('Languages').'</h2>';
 			$langs = Language::getLanguages(true);
-			foreach($langs as $lang) {
+			foreach($langs as $lang) 
+			{
 				$iso_code = $lang['iso_code'];
+				
+				if (Configuration::get('PS_REWRITING_SETTINGS')) 
+				{
+					$url = Tools::getShopDomain(true, true).__PS_BASE_URI__.$lang['iso_code'] . '/';
+					if(Configuration::get('GADVSITEMAP_'.$lang['iso_code'].'_URL'))
+					{
+						$url = Configuration::get('GADVSITEMAP_'.$lang['iso_code'].'_URL');
+					}
+				}
+				else
+					$url = Tools::getShopDomain(true, true).__PS_BASE_URI__;
+				
 				$this->_html .= 
 				'<div style="margin:0 0 20px 0;">
-					<input type="checkbox" name="'.$iso_code.'" id="'.$iso_code.'" style="vertical-align: middle;" value="1" '.(Configuration::get($iso_code) ? 'checked="checked"' : '').' /> <label class="t" for="'.$iso_code.'">'.$lang['name'].'</label>
+					<input type="checkbox" name="'.$iso_code.'" id="'.$iso_code.'" style="vertical-align: middle;" value="1" '.(Configuration::get($iso_code) ? 'checked="checked"' : '').' /> <label class="t" for="'.$iso_code.'">'.$lang['name'].'</label><br />
+					<label class="t">URL : <input type="text" name="'.$iso_code.'_url" id="'.$iso_code.'_url" size="50" value="'.$url.'"/></label>
 				</div>';
+			}
+			
+			if (!Configuration::get('PS_REWRITING_SETTINGS') )
+			{
+				$this->_html .= '<h3 class="alert error" style="margin-bottom: 20px">
+										'.$this->l('Friendly URLs are required if you want to modify those.').'
+								 </h3>';
 			}
 			
 			$this->_html .= 
