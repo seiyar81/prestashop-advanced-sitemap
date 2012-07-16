@@ -26,7 +26,7 @@
 */
 
 if (!defined('_PS_VERSION_'))
-	exit;
+    exit;
 
 require_once 'gadvLink.php';
 	
@@ -91,11 +91,13 @@ class gadvsitemap extends Module
 
 	private function _postProcess()
 	{
+            try
+            {
 		Configuration::updateValue('GSITEMAP_ALL_CMS', (int)Tools::getValue('GSITEMAP_ALL_CMS'));
 		Configuration::updateValue('GSITEMAP_ALL_PRODUCTS', (int)Tools::getValue('GSITEMAP_ALL_PRODUCTS'));
 		Configuration::updateValue('GADVSITEMAP_NOTIFY', (int)Tools::getValue('GADVSITEMAP_NOTIFY'));
-        Configuration::updateValue('GADVSITEMAP_NOTIFY_BING', (int)Tools::getValue('GADVSITEMAP_NOTIFY_BING'));
-        Configuration::updateValue('GADVSITEMAP_NOTIFY_ASK', (int)Tools::getValue('GADVSITEMAP_NOTIFY_ASK'));
+                Configuration::updateValue('GADVSITEMAP_NOTIFY_BING', (int)Tools::getValue('GADVSITEMAP_NOTIFY_BING'));
+                Configuration::updateValue('GADVSITEMAP_NOTIFY_ASK', (int)Tools::getValue('GADVSITEMAP_NOTIFY_ASK'));
 		$gadvlink = new gadvLink(Tools::getShopDomain(true, true).__PS_BASE_URI__);
 		$link	  = new Link();
 		$langs = Language::getLanguages(true);
@@ -221,11 +223,25 @@ XML;
 
 		foreach($categories as $category)
 		{
+                    if (Configuration::get('PS_REWRITING_SETTINGS'))
+                    {
+                        foreach($langs as $lang) 
+                        {
+                            if (($priority = 0.9 - ($category['level_depth'] / 10)) < 0.1)
+                                $priority = 0.1;
+
+                            $tmpLink = $gadvlink->getCategoryLink((int)$category['id_category'], $category['link_rewrite'], (int)$lang['id_lang']);
+                            $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($category['date_upd'], 0, 10));
+                        }
+                    }
+                    else
+                    {
 			if (($priority = 0.9 - ($category['level_depth'] / 10)) < 0.1)
 				$priority = 0.1;
 
-			$tmpLink = Configuration::get('PS_REWRITING_SETTINGS') ? $link->getCategoryLink((int)$category['id_category'], $category['link_rewrite'], (int)$category['id_lang']) : $link->getCategoryLink((int)$category['id_category']);
+			$tmpLink = $link->getCategoryLink((int)$category['id_category']);
 			$this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($category['date_upd'], 0, 10));
+                    }
 		}
 
 		/* CMS Generator */
@@ -248,8 +264,19 @@ XML;
 		$cmss = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS($sql_cms);
 		foreach($cmss as $cms)
 		{
-			$tmpLink = Configuration::get('PS_REWRITING_SETTINGS') ? $link->getCMSLink((int)$cms['id_cms'], $cms['link_rewrite'], false, (int)$cms['id_lang']) : $link->getCMSLink((int)$cms['id_cms']);
+                    if (Configuration::get('PS_REWRITING_SETTINGS'))
+                    {
+                        foreach($langs as $lang) 
+                        {
+                            $tmpLink = $gadvlink->getCMSLink((int)$cms['id_cms'], $cms['link_rewrite'], false, (int)$lang['id_lang']);
+                            $this->_addSitemapNode($xml, $tmpLink, '0.8', 'daily');
+                        }
+                    }
+                    else
+                    {
+			$tmpLink = $link->getCMSLink((int)$cms['id_cms']);
 			$this->_addSitemapNode($xml, $tmpLink, '0.8', 'daily');
+                    }
 		}
 
 		/* Add classic pages (contact, best sales, new products...) */
@@ -274,7 +301,7 @@ XML;
 		if (Configuration::get('PS_REWRITING_SETTINGS'))
 			foreach ($pages as $page => $ssl)
 				foreach($langs as $lang)
-					$this->_addSitemapNode($xml, $link->getPageLink($page.'.php', $ssl, $lang['id_lang']), '0.5', 'monthly');
+					$this->_addSitemapNode($xml, $gadvlink->getPageLink($page.'.php', $ssl, $lang['id_lang']), '0.5', 'monthly');
 		else
 			foreach($pages as $page => $ssl)
 				$this->_addSitemapNode($xml, $link->getPageLink($page.'.php', $ssl), '0.5', 'monthly');
@@ -283,48 +310,56 @@ XML;
 		
 	    if(Configuration::get('GADVSITEMAP_NOTIFY')) 
 	    {
-            if(@file_get_contents('http://www.google.com/webmasters/tools/ping?sitemap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
-                $pinged = true;
-            else $pinged = false;
-        }
-        if(Configuration::get('GADVSITEMAP_NOTIFY_BING')) 
-        {
-            if(@file_get_contents('http://www.bing.com/webmaster/ping.aspx?siteMap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
-                  $bingPinged = true;
-            else
-                  $bingPinged = false;
-        }
-        if(Configuration::get('GADVSITEMAP_NOTIFY_ASK')) 
-        {
-            if(@file_get_contents('http://submissions.ask.com/ping?sitemap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
-                  $askPinged = true;
-            else
-                  $askPinged = false;
-        }
-		
-		$res = file_exists(GSITEMAP_FILE);
-		$this->_html .= '<h3 class="'. ($res ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
-		$this->_html .= $res ? $this->l('Sitemap file generated') : $this->l('Error while creating sitemap file');
-		$this->_html .= '</h3>';
-		
-		if(Configuration::get('GADVSITEMAP_NOTIFY')) 
-		{
-            $this->_html .= '<h3 class="'. ($pinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
-            $this->_html .= $pinged ? $this->l('Google successfully pinged') : $this->l('Error while pinging Google');
+                if(@file_get_contents('http://www.google.com/webmasters/tools/ping?sitemap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
+                    $pinged = true;
+                else $pinged = false;
+            }
+            if(Configuration::get('GADVSITEMAP_NOTIFY_BING')) 
+            {
+                if(@file_get_contents('http://www.bing.com/webmaster/ping.aspx?siteMap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
+                    $bingPinged = true;
+                else
+                    $bingPinged = false;
+            }
+            if(Configuration::get('GADVSITEMAP_NOTIFY_ASK')) 
+            {
+                if(@file_get_contents('http://submissions.ask.com/ping?sitemap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
+                    $askPinged = true;
+                else
+                    $askPinged = false;
+            }
+
+            $res = file_exists(GSITEMAP_FILE);
+            $this->_html .= '<h3 class="'. ($res ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
+            $this->_html .= $res ? $this->l('Sitemap file generated') : $this->l('Error while creating sitemap file');
             $this->_html .= '</h3>';
-        }
-        if(Configuration::get('GADVSITEMAP_NOTIFY_BING')) 
-        {
-            $this->_html .= '<h3 class="'. ($bingPinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
-            $this->_html .= $bingPinged ? $this->l('Bing successfully pinged') : $this->l('Error while pinging Bing');
-            $this->_html .= '</h3>';
-        }
-        if(Configuration::get('GADVSITEMAP_NOTIFY_ASK')) 
-        {
-        	$this->_html .= '<h3 class="'. ($askPinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
-            $this->_html .= $askPinged ? $this->l('Ask successfully pinged') : $this->l('Error while pinging Ask');
-            $this->_html .= '</h3>';
-        }
+
+            if(Configuration::get('GADVSITEMAP_NOTIFY')) 
+            {
+                $this->_html .= '<h3 class="'. ($pinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
+                $this->_html .= $pinged ? $this->l('Google successfully pinged') : $this->l('Error while pinging Google');
+                $this->_html .= '</h3>';
+            }
+            if(Configuration::get('GADVSITEMAP_NOTIFY_BING')) 
+            {
+                $this->_html .= '<h3 class="'. ($bingPinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
+                $this->_html .= $bingPinged ? $this->l('Bing successfully pinged') : $this->l('Error while pinging Bing');
+                $this->_html .= '</h3>';
+            }
+            if(Configuration::get('GADVSITEMAP_NOTIFY_ASK')) 
+            {
+                    $this->_html .= '<h3 class="'. ($askPinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
+                $this->_html .= $askPinged ? $this->l('Ask successfully pinged') : $this->l('Error while pinging Ask');
+                $this->_html .= '</h3>';
+            }
+            
+            }catch(Exception $e)
+            {
+                $this->_html = '<h3 class="alert error" style="margin-bottom: 20px">';
+                $this->_html .= $this->l('An unknown error occured during the sitemap generation.') . '<br />';
+                $this->_html .= $e->getMessage();
+                $this->_html .= '</h3>';
+            }
 	}
 
 	private function _saveFormattedSitemap($xml)
