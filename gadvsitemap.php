@@ -41,7 +41,7 @@ class gadvsitemap extends Module
 	{
 		$this->name = 'gadvsitemap';
 		$this->tab = 'seo';
-		$this->version = '1.4';
+		$this->version = '1.4.1';
 		$this->author = 'Yriase';
 		$this->need_instance = 0;
 
@@ -62,7 +62,9 @@ class gadvsitemap extends Module
 		    !$this->registerHook('updateproduct') ||
 		    !$this->registerHook('updateProductAttribute') ||
 		    !$this->registerHook('deleteproduct'))
-			return false;
+			return true;
+			
+		return true;
 	}
 	
 	public function uninstall()
