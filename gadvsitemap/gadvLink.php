@@ -35,21 +35,21 @@ class gadvLink extends Link
 	
 	public function getProductLink($id_product, $alias = NULL, $category = NULL, $ean13 = NULL, $id_lang = NULL)
 	{
-		global $cookie;
 		if (is_object($id_product))
 		{		
 			$link = '';
 
 			$link .= $this->_langsUrl[(int)$id_lang];
 			
-			if (isset($id_product->category) AND !empty($id_product->category) AND $id_product->category != 'home')
+			/*if (isset($id_product->category) AND !empty($id_product->category) AND $id_product->category != 'home')
 				$link .= $id_product->category.'/';
 			else
-				$link .= '';
+				$link .= '';*/
+                        $link .= $category . '/';
 
 			$link .= (int)$id_product->id.'-';
 			if (is_array($id_product->link_rewrite))
-				$link.= $id_product->link_rewrite[(int)$cookie->id_lang];
+				$link.= $id_product->link_rewrite[(int)$id_lang];
 			else 
 			 	$link.= $id_product->link_rewrite;
 			if ($id_product->ean13)
@@ -140,6 +140,28 @@ class gadvLink extends Link
                 self::$cache['page'][$filename.'_'.$id_lang] = $uri_path;
             }
             return ltrim($uri_path, '/');
+	}
+        
+        public function getImageLink($name, $ids, $id_lang, $type = NULL)
+	{
+		global $protocol_content;
+
+		// legacy mode or default image
+		if ((Configuration::get('PS_LEGACY_IMAGES') 
+			&& (file_exists(_PS_PROD_IMG_DIR_.$ids.($type ? '-'.$type : '').'.jpg')))
+			|| strpos($ids, 'default') !== false)
+		{
+			$uri_path = $this->_langsUrl[(int)$id_lang] . $ids.($type ? '-'.$type : '').'/'.$name.'.jpg';
+		}else
+		{
+			// if ids if of the form id_product-id_image, we want to extract the id_image part
+			$split_ids = explode('-', $ids);
+			$id_image = (isset($split_ids[1]) ? $split_ids[1] : $split_ids[0]);
+			
+			$uri_path = $this->_langsUrl[(int)$id_lang] . $id_image.($type ? '-'.$type : '').'/'.$name.'.jpg';
+		}
+		
+		return $uri_path;
 	}
 	
 }

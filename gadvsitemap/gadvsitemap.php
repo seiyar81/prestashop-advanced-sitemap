@@ -41,7 +41,7 @@ class gadvsitemap extends Module
 	{
 		$this->name = 'gadvsitemap';
 		$this->tab = 'seo';
-		$this->version = '1.4.1';
+		$this->version = '1.4.3';
 		$this->author = 'Yriase';
 		$this->need_instance = 0;
 
@@ -102,15 +102,18 @@ class gadvsitemap extends Module
                 Configuration::updateValue('GADVSITEMAP_NOTIFY_ASK', (int)Tools::getValue('GADVSITEMAP_NOTIFY_ASK'));
 		$gadvlink = new gadvLink(Tools::getShopDomain(true, true).__PS_BASE_URI__);
 		$link	  = new Link();
-		$langs = Language::getLanguages(true);
-		foreach($langs as $lang) 
+		$langsList = Language::getLanguages(true);
+                $langs = array();
+                //var_dump($_POST);
+                foreach($langsList as $lang) 
 		{
 			Configuration::updateValue($lang['iso_code'], (int)Tools::getValue($lang['iso_code']));
 			
-			if(Tools::getIsset($lang['iso_code'].'_url'))
+			if(Tools::getIsset($lang['iso_code']) && Tools::getIsset($lang['iso_code'].'_url'))
 			{
 				Configuration::updateValue('GADVSITEMAP_'.$lang['iso_code'].'_URL', Tools::getValue($lang['iso_code'].'_url'));
 				$gadvlink->setLangUrl($lang['id_lang'], Tools::getValue($lang['iso_code'].'_url'));
+                                $langs[] = $lang;
 			}
 		}
 		
@@ -144,7 +147,7 @@ XML;
 		if ($lang_list != '') $lang_list = 'and l.id_lang in ('.$lang_list.')';
 
 		/* Product Generator */
-		$products = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
+		/*$sql_products = '
 		SELECT p.id_product, pl.link_rewrite, DATE_FORMAT(IF(date_upd,date_upd,date_add), \'%Y-%m-%d\') date_upd, pl.id_lang, cl.`link_rewrite` category, ean13, i.id_image, il.legend legend_image, (
 			SELECT MIN(level_depth)
 			FROM '._DB_PREFIX_.'product p2
@@ -159,52 +162,74 @@ XML;
 		LEFT JOIN '._DB_PREFIX_.'lang l ON (pl.id_lang = l.id_lang '.$lang_list.')
 		WHERE l.`active` = 1 AND p.`active` = 1
 		'.(Configuration::get('GSITEMAP_ALL_PRODUCTS') ? '' : 'HAVING level_depth IS NOT NULL').'
-		ORDER BY pl.id_product, pl.id_lang ASC');
-
-		
+		ORDER BY pl.id_product, pl.id_lang ASC';*/
+                $sql_products = '
+		SELECT p.id_product, pl.link_rewrite, DATE_FORMAT(IF(date_upd,date_upd,date_add), \'%Y-%m-%d\') date_upd, pl.id_lang, cl.`link_rewrite` category, ean13, (
+			SELECT MIN(level_depth)
+			FROM '._DB_PREFIX_.'product p2
+			LEFT JOIN '._DB_PREFIX_.'category_product cp2 ON p2.id_product = cp2.id_product
+			LEFT JOIN '._DB_PREFIX_.'category c2 ON cp2.id_category = c2.id_category
+			WHERE p2.id_product = p.id_product AND p2.`active` = 1 AND c2.`active` = 1) AS level_depth
+		FROM '._DB_PREFIX_.'product p
+		LEFT JOIN '._DB_PREFIX_.'product_lang pl ON (p.id_product = pl.id_product)
+		LEFT JOIN `'._DB_PREFIX_.'category_lang` cl ON (p.`id_category_default` = cl.`id_category` AND pl.`id_lang` = cl.`id_lang`)
+		LEFT JOIN '._DB_PREFIX_.'lang l ON (pl.id_lang = l.id_lang '.$lang_list.')
+		WHERE l.`active` = 1 AND p.`active` = 1
+		'.(Configuration::get('GSITEMAP_ALL_PRODUCTS') ? '' : 'HAVING level_depth IS NOT NULL').'
+		ORDER BY pl.id_product, pl.id_lang ASC';
+                
+                $products = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS( $sql_products );
+                
 		$tmp = null;
 		$res = null;
 		$done = null;
-		foreach ($products as $product)
+                
+		/*foreach ($products as $product)
 		{
-			if (!isset($done[$product['id_image']]))
-			{
-				if ($tmp == $product['id_product'])
-				   $res[$tmp]['images'] []= array('id_image' => $product['id_image'], 'legend_image' => $product['legend_image']);
-				else
-				{
-					$tmp = $product['id_product'];
-					$res[$tmp] = $product;
-					unset($res[$tmp]['id_image'], $res[$tmp]['legend_image']);
-					$res[$tmp]['images'] []= array('id_image' => $product['id_image'], 'legend_image' => $product['legend_image']);
-				}
-				$done[$product['id_image']] = true;
-			}
-		}
+                    if (!isset($done[$product['id_image']]))
+                    {
+                        if ($tmp == $product['id_product'])
+                            $res[$tmp]['images'] []= array('id_image' => $product['id_image'], 'legend_image' => $product['legend_image']);
+                        else
+                        {
+                            $tmp = $product['id_product'];
+                            $res[$tmp] = $product;
+                            unset($res[$tmp]['id_image'], $res[$tmp]['legend_image']);
+                            $res[$tmp]['images'] []= array('id_image' => $product['id_image'], 'legend_image' => $product['legend_image']);
+                        }
+                        $done[$product['id_image']] = true;
+                    }
+		}*/
+                
+                if (Configuration::get('PS_REWRITING_SETTINGS'))
+                {
+                    foreach ($products as &$product)
+                    {
+                        if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
+                                $priority = 0.1;
 
-		foreach ($res as $product)
-		{
-			if (Configuration::get('PS_REWRITING_SETTINGS'))
-			{
-				foreach($langs as $lang) 
-				{
-					if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
-						$priority = 0.1;
-		
-					$tmpLink = $gadvlink->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], $lang['id_lang']);
-					$sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
-					$sitemap = $this->_addSitemapNodeImage($sitemap, $product);
-				}
-			}
-			else
-			{
-				if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
-						$priority = 0.1;
-		
-					$tmpLink = $link->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], (int)($product['id_lang']));
-					$sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
-					$sitemap = $this->_addSitemapNodeImage($sitemap, $product);
-			}
+                        $sql_images = 'SELECT i.id_image, il.legend legend_image 
+                                        FROM '._DB_PREFIX_.'image i
+                                        LEFT JOIN `'._DB_PREFIX_.'image_lang` il ON (i.`id_image` = il.`id_image` AND il.`id_lang` = '.$product['id_lang'].')
+                                        WHERE i.id_product = '.$product['id_product'];
+                        $product['images'] = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS( $sql_images );
+
+                        $tmpLink = $gadvlink->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], $product['id_lang']);
+                        $sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
+                        $sitemap = $this->_addSitemapNodeImage($sitemap, $product, $gadvlink, $product['id_lang']);
+                    }
+                }
+                else
+                {
+                    foreach ($products as &$product)
+                    {
+                        if (($priority = 0.7 - ($product['level_depth'] / 10)) < 0.1)
+                                            $priority = 0.1;
+
+                        $tmpLink = $link->getProductLink((int)($product['id_product']), $product['link_rewrite'], $product['category'], $product['ean13'], (int)($product['id_lang']));
+                        $sitemap = $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($product['date_upd'], 0, 10));
+                        $sitemap = $this->_addSitemapNodeImage($sitemap, $product, $link, $lang);
+                    }
 		}
 
 		/* Categories Generator */
@@ -227,14 +252,11 @@ XML;
 		{
                     if (Configuration::get('PS_REWRITING_SETTINGS'))
                     {
-                        foreach($langs as $lang) 
-                        {
-                            if (($priority = 0.9 - ($category['level_depth'] / 10)) < 0.1)
-                                $priority = 0.1;
+                        if (($priority = 0.9 - ($category['level_depth'] / 10)) < 0.1)
+                            $priority = 0.1;
 
-                            $tmpLink = $gadvlink->getCategoryLink((int)$category['id_category'], $category['link_rewrite'], (int)$lang['id_lang']);
-                            $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($category['date_upd'], 0, 10));
-                        }
+                        $tmpLink = $gadvlink->getCategoryLink((int)$category['id_category'], $category['link_rewrite'], (int)$category['id_lang']);
+                        $this->_addSitemapNode($xml, htmlspecialchars($tmpLink), $priority, 'weekly', substr($category['date_upd'], 0, 10));
                     }
                     else
                     {
@@ -262,17 +284,14 @@ XML;
 			LEFT JOIN '._DB_PREFIX_.'lang l ON (cl.id_lang = l.id_lang '.$lang_list.')
 			WHERE l.`active` = 1
 			ORDER BY cl.id_cms, cl.id_lang ASC';
-
+                
 		$cmss = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS($sql_cms);
 		foreach($cmss as $cms)
 		{
                     if (Configuration::get('PS_REWRITING_SETTINGS'))
                     {
-                        foreach($langs as $lang) 
-                        {
-                            $tmpLink = $gadvlink->getCMSLink((int)$cms['id_cms'], $cms['link_rewrite'], false, (int)$lang['id_lang']);
-                            $this->_addSitemapNode($xml, $tmpLink, '0.8', 'daily');
-                        }
+                        $tmpLink = $gadvlink->getCMSLink((int)$cms['id_cms'], $cms['link_rewrite'], false, (int)$cms['id_lang']);
+                        $this->_addSitemapNode($xml, $tmpLink, '0.8', 'daily');
                     }
                     else
                     {
@@ -385,14 +404,20 @@ XML;
 		return $sitemap;
 	}
 
-	private function _addSitemapNodeImage($xml, $product)
+	private function _addSitemapNodeImage($xml, $product, $link, $lang)
 	{
+            if(isset($product['images']))
 		foreach ($product['images'] as $img)
 		{
-			$this->_nbImages++;
-			$link = new Link();
+                    	$this->_nbImages++;
 			$image = $xml->addChild('image', null, 'http://www.google.com/schemas/sitemap-image/1.1');
-			$image->addChild('loc', $link->getImageLink($product['link_rewrite'], (int)$product['id_product'].'-'.(int)$img['id_image']), 'http://www.google.com/schemas/sitemap-image/1.1');
+                        
+                        if(Configuration::get('PS_REWRITING_SETTINGS'))
+                            $tmpLink = $link->getImageLink($product['link_rewrite'], (int)$product['id_product'].'-'.(int)$img['id_image'], $lang);
+                        else
+                            $tmpLink = $link->getImageLink($product['link_rewrite'], (int)$product['id_product'].'-'.(int)$img['id_image']);
+                            
+			$image->addChild('loc', $tmpLink, 'http://www.google.com/schemas/sitemap-image/1.1');
 
 			$legend_image = preg_replace('/(&+)/i', '&amp;', $img['legend_image']);
 			$image->addChild('caption', $legend_image, 'http://www.google.com/schemas/sitemap-image/1.1');

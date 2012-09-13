@@ -2,7 +2,7 @@
 <module>
 	<name>gadvsitemap</name>
 	<displayName><![CDATA[Prestashop Advanced Sitemap]]></displayName>
-	<version><![CDATA[1.4]]></version>
+	<version><![CDATA[1.4.3]]></version>
 	<description><![CDATA[Generate your sitemap file with advanced options]]></description>
 	<author><![CDATA[Yriase]]></author>
 	<tab><![CDATA[seo]]></tab>
