@@ -98,8 +98,7 @@ class gadvsitemap extends Module
 		Configuration::updateValue('GSITEMAP_ALL_CMS', (int)Tools::getValue('GSITEMAP_ALL_CMS'));
 		Configuration::updateValue('GSITEMAP_ALL_PRODUCTS', (int)Tools::getValue('GSITEMAP_ALL_PRODUCTS'));
 		Configuration::updateValue('GADVSITEMAP_NOTIFY', (int)Tools::getValue('GADVSITEMAP_NOTIFY'));
-                Configuration::updateValue('GADVSITEMAP_NOTIFY_BING', (int)Tools::getValue('GADVSITEMAP_NOTIFY_BING'));
-                Configuration::updateValue('GADVSITEMAP_NOTIFY_ASK', (int)Tools::getValue('GADVSITEMAP_NOTIFY_ASK'));
+		Configuration::updateValue('GADVSITEMAP_NOTIFY_BING', (int)Tools::getValue('GADVSITEMAP_NOTIFY_BING'));
 		$gadvlink = new gadvLink(Tools::getShopDomain(true, true).__PS_BASE_URI__);
 		$link	  = new Link();
 		$langsList = Language::getLanguages(true);
@@ -342,13 +341,6 @@ XML;
                 else
                     $bingPinged = false;
             }
-            if(Configuration::get('GADVSITEMAP_NOTIFY_ASK')) 
-            {
-                if(@file_get_contents('http://submissions.ask.com/ping?sitemap=http://'.Tools::getHttpHost(false, true).__PS_BASE_URI__.'sitemap.xml'))
-                    $askPinged = true;
-                else
-                    $askPinged = false;
-            }
 
             $res = file_exists(GSITEMAP_FILE);
             $this->_html .= '<h3 class="'. ($res ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
@@ -365,12 +357,6 @@ XML;
             {
                 $this->_html .= '<h3 class="'. ($bingPinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
                 $this->_html .= $bingPinged ? $this->l('Bing successfully pinged') : $this->l('Error while pinging Bing');
-                $this->_html .= '</h3>';
-            }
-            if(Configuration::get('GADVSITEMAP_NOTIFY_ASK')) 
-            {
-                    $this->_html .= '<h3 class="'. ($askPinged ? 'conf confirm' : 'alert error') .'" style="margin-bottom: 20px">';
-                $this->_html .= $askPinged ? $this->l('Ask successfully pinged') : $this->l('Error while pinging Ask');
                 $this->_html .= '</h3>';
             }
             
@@ -467,9 +453,6 @@ XML;
 			</div>
             <div style="margin:0 0 20px 0;">
 				<input type="checkbox" name="GADVSITEMAP_NOTIFY_BING" id="GADVSITEMAP_NOTIFY_BING" style="vertical-align: middle;" value="1" '.(Configuration::get('GADVSITEMAP_NOTIFY_BING') ? 'checked="checked"' : '').' /> <label class="t" for="GADVSITEMAP_NOTIFY_BING">'.$this->l('Send this sitemap to Bing index (Yahoo index has moved to Bing)').'</label>
-			</div>
-            <div style="margin:0 0 20px 0;">
-				<input type="checkbox" name="GADVSITEMAP_NOTIFY_ASK" id="GADVSITEMAP_NOTIFY_ASK" style="vertical-align: middle;" value="1" '.(Configuration::get('GADVSITEMAP_NOTIFY_ASK') ? 'checked="checked"' : '').' /> <label class="t" for="GADVSITEMAP_NOTIFY_ASK">'.$this->l('Send this sitemap to Ask index').'</label>
 			</div>
 			
 			<h2>'.$this->l('Languages').'</h2>';
