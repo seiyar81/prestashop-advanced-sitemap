@@ -1,4 +1,10 @@
 <?php
+/*
+* Prestashop Advanced Sitemap
+*
+*  @author Yriase <postmaster@yriase.fr>
+*  @version  1.4.4
+*/
 
 class gadvLink extends Link
 {
