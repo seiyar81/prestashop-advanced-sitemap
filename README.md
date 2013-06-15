@@ -6,6 +6,7 @@ prestashop-advanced-sitemap
 - Configurable URLs
 - Search engines pinging
 - Automatic sitemap rewriting (new product etc ...)
+- Secured Cron endpoint 
 
 License
 ===========================
