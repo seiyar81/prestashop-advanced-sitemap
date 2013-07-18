@@ -3,13 +3,21 @@
 * Prestashop Advanced Sitemap
 *
 *  @author Yriase <postmaster@yriase.fr>
-*  @version  1.4.4
+*  @version  1.4.5
+*
+* THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+* INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR 
+* BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER 
+* RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER 
+* TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*
 */
 
 if (! defined ( '_PS_VERSION_' ))
 	exit ();
 
-require_once 'gadvLink.php';
+require_once 'classes/gadvlink.php';
+require_once 'classes/github.php';
 
 class gadvsitemap extends Module {
 	private $_html = '';
@@ -20,17 +28,19 @@ class gadvsitemap extends Module {
 	public function __construct() {
 		$this->name = 'gadvsitemap';
 		$this->tab = 'seo';
-		$this->version = '1.4.4';
+		$this->version = '1.4.5';
 		$this->author = 'Yriase';
 		$this->need_instance = 0;
 		
 		parent::__construct ();
 		
-		$this->displayName = $this->l ( 'Prestashop Advanced Sitemap' );
-		$this->description = $this->l ( 'Generate your sitemap file with advanced options' );
+		$this->displayName = $this->l('Prestashop Advanced Sitemap');
+		$this->description = $this->l('Generate your sitemap file with advanced options');
 		
 		if (! defined ( 'GSITEMAP_FILE' ))
 			define ( 'GSITEMAP_FILE', dirname ( __FILE__ ) . '/../../sitemap.xml' );
+        if (! defined ( 'GROBOTS_FILE' ))
+    		define ( 'GROBOTS_FILE', dirname ( __FILE__ ) . '/../../robots.txt' );
 	}
 	
 	public function install() {
@@ -49,7 +59,7 @@ class gadvsitemap extends Module {
 	private function _postValidation() {
 		file_put_contents ( GSITEMAP_FILE, '' );
 		if (! ($fp = fopen ( GSITEMAP_FILE, 'w' )))
-			$this->_postErrors [] = $this->l ( 'Cannot create' ) . ' ' . realpath ( dirname ( __FILE__ . '/../..' ) ) . '/' . $this->l ( 'sitemap.xml file.' );
+			$this->_postErrors [] = $this->l( 'Cannot create' ) . ' ' . realpath ( dirname ( __FILE__ . '/../..' ) ) . '/' . $this->l( 'sitemap.xml file.' );
 		else
 			fclose ( $fp );
 	}
@@ -95,6 +105,12 @@ class gadvsitemap extends Module {
 					}
 				}
 			}
+            
+            if(empty($langs))
+            {
+                throw new Exception( $this->l('You must select at least one language.') );           
+            }
+            
 			$this->_nbImages = 0;
 			
 			$xmlString = <<<XML
@@ -110,9 +126,12 @@ XML;
 				foreach ( $langs as $lang ) {
 					if (Configuration::get ( $lang ['iso_code'] )) {
 						$langUrl = $gadvlink->getLangUrl ( $lang );
-						$this->_addSitemapNode ( $xml, $langUrl, '1.00', 'daily', date ( 'Y-m-d' ) );
-						$lang_list .= ($lang_list != '') ? ', ' : '';
-						$lang_list .= $lang ['id_lang'];
+                        if(strlen($langUrl))
+                        {
+    						$this->_addSitemapNode ( $xml, $langUrl, '1.00', 'daily', date ( 'Y-m-d' ) );
+    						$lang_list .= ($lang_list != '') ? ', ' : '';
+    						$lang_list .= $lang ['id_lang'];
+                        }
 					}
 				}
 			} else
@@ -154,17 +173,23 @@ XML;
 					$product ['images'] = Db::getInstance ( _PS_USE_SQL_SLAVE_ )->ExecuteS ( $sql_images );
 					
 					$tmpLink = $gadvlink->getProductLink ( ( int ) ($product ['id_product']), $product ['link_rewrite'], $product ['category'], $product ['ean13'], $product ['id_lang'] );
-					$sitemap = $this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $product ['date_upd'], 0, 10 ) );
-					$sitemap = $this->_addSitemapNodeImage ( $sitemap, $product, $gadvlink, $product ['id_lang'] );
+                    if(strlen($tmpLink))
+                    {
+    					$sitemap = $this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $product ['date_upd'], 0, 10 ) );
+    					$sitemap = $this->_addSitemapNodeImage ( $sitemap, $product, $gadvlink, $product ['id_lang'] );
+                    }
 				}
 			} else {
 				foreach ( $products as &$product ) {
 					if (($priority = 0.7 - ($product ['level_depth'] / 10)) < 0.1)
 						$priority = 0.1;
 					
-					$tmpLink = $link->getProductLink ( ( int ) ($product ['id_product']), $product ['link_rewrite'], $product ['category'], $product ['ean13'], ( int ) ($product ['id_lang']) );
-					$sitemap = $this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $product ['date_upd'], 0, 10 ) );
-					$sitemap = $this->_addSitemapNodeImage ( $sitemap, $product, $link, $lang );
+					$tmpLink = $gadvlink->getProductLink ( ( int ) ($product ['id_product']), $product ['link_rewrite'], $product ['category'], $product ['ean13'], ( int ) ($product ['id_lang']) );
+					if(strlen($tmpLink))
+                    {
+                        $sitemap = $this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $product ['date_upd'], 0, 10 ) );
+					    $sitemap = $this->_addSitemapNodeImage ( $sitemap, $product, $gadvlink, $lang );
+                    }
 				}
 			}
 			
@@ -188,13 +213,19 @@ XML;
 						$priority = 0.1;
 					
 					$tmpLink = $gadvlink->getCategoryLink ( ( int ) $category ['id_category'], $category ['link_rewrite'], ( int ) $category ['id_lang'] );
-					$this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $category ['date_upd'], 0, 10 ) );
+					if(strlen($tmpLink))
+                    {
+                        $this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $category ['date_upd'], 0, 10 ) );
+                    }
 				} else {
 					if (($priority = 0.9 - ($category ['level_depth'] / 10)) < 0.1)
 						$priority = 0.1;
 					
-					$tmpLink = $link->getCategoryLink ( ( int ) $category ['id_category'] );
-					$this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $category ['date_upd'], 0, 10 ) );
+					$tmpLink = $gadvlink->getCategoryLink ( ( int ) $category ['id_category'] );
+                    if(strlen($tmpLink))
+                    {
+					    $this->_addSitemapNode ( $xml, htmlspecialchars ( $tmpLink ), $priority, 'weekly', substr ( $category ['date_upd'], 0, 10 ) );
+                    }
 				}
 			}
 			
@@ -217,10 +248,16 @@ XML;
 			foreach ( $cmss as $cms ) {
 				if (Configuration::get ( 'PS_REWRITING_SETTINGS' )) {
 					$tmpLink = $gadvlink->getCMSLink ( ( int ) $cms ['id_cms'], $cms ['link_rewrite'], false, ( int ) $cms ['id_lang'] );
-					$this->_addSitemapNode ( $xml, $tmpLink, '0.8', 'daily' );
+					if(strlen($tmpLink))
+                    {
+                        $this->_addSitemapNode ( $xml, $tmpLink, '0.8', 'daily' );
+                    }
 				} else {
-					$tmpLink = $link->getCMSLink ( ( int ) $cms ['id_cms'] );
-					$this->_addSitemapNode ( $xml, $tmpLink, '0.8', 'daily' );
+					$tmpLink = $gadvlink->getCMSLink ( ( int ) $cms ['id_cms'] );
+                    if(strlen($tmpLink))
+                    {
+					    $this->_addSitemapNode ( $xml, $tmpLink, '0.8', 'daily' );
+                    }
 				}
 			}
 			
@@ -241,7 +278,7 @@ XML;
 						$this->_addSitemapNode ( $xml, $gadvlink->getPageLink ( $page . '.php', $ssl, $lang ['id_lang'] ), '0.5', 'monthly' );
 			else
 				foreach ( $pages as $page => $ssl )
-					$this->_addSitemapNode ( $xml, $link->getPageLink ( $page . '.php', $ssl ), '0.5', 'monthly' );
+					$this->_addSitemapNode ( $xml, $gadvlink->getPageLink ( $page . '.php', $ssl ), '0.5', 'monthly' );
 			
 			$this->_saveFormattedSitemap ( $xml );
 			
@@ -260,23 +297,23 @@ XML;
 			
 			$res = file_exists ( GSITEMAP_FILE );
 			$this->_html .= '<h3 class="' . ($res ? 'conf confirm' : 'alert error') . '" style="margin-bottom: 20px">';
-			$this->_html .= $res ? $this->l ( 'Sitemap file generated' ) : $this->l ( 'Error while creating sitemap file' );
+			$this->_html .= $res ? $this->l('Sitemap file generated') : $this->l('Error while creating sitemap file');
 			$this->_html .= '</h3>';
 			
 			if (Configuration::get ( 'GADVSITEMAP_NOTIFY' )) {
 				$this->_html .= '<h3 class="' . ($pinged ? 'conf confirm' : 'alert error') . '" style="margin-bottom: 20px">';
-				$this->_html .= $pinged ? $this->l ( 'Google successfully pinged' ) : $this->l ( 'Error while pinging Google' );
+				$this->_html .= $pinged ? $this->l('Google successfully pinged') : $this->l('Error while pinging Google');
 				$this->_html .= '</h3>';
 			}
 			if (Configuration::get ( 'GADVSITEMAP_NOTIFY_BING' )) {
 				$this->_html .= '<h3 class="' . ($bingPinged ? 'conf confirm' : 'alert error') . '" style="margin-bottom: 20px">';
-				$this->_html .= $bingPinged ? $this->l ( 'Bing successfully pinged' ) : $this->l ( 'Error while pinging Bing' );
+				$this->_html .= $bingPinged ? $this->l('Bing successfully pinged') : $this->l('Error while pinging Bing');
 				$this->_html .= '</h3>';
 			}
 		
 		} catch ( Exception $e ) {
 			$this->_html = '<h3 class="alert error" style="margin-bottom: 20px">';
-			$this->_html .= $this->l ( 'An unknown error occured during the sitemap generation.' ) . '<br />';
+			$this->_html .= $this->l('An unknown error occured during the sitemap generation.') . '<br />';
 			$this->_html .= $e->getMessage ();
 			$this->_html .= '</h3>';
 		}
@@ -329,16 +366,18 @@ XML;
 			
 			$nbPages = count ( $xml->url );
 			
-			$this->_html .= '<p>' . $this->l ( 'Your Google sitemap file is online at the following address:' ) . '<br />
+			$this->_html .= '<div class="gadv_right gadv_bloc"><p>' . $this->l('Your sitemap file is online at the following address:') . '<br />
 			<a href="' . Tools::getShopDomain ( true, true ) . __PS_BASE_URI__ . 'sitemap.xml" target="_blank"><b>' . Tools::getShopDomain ( true, true ) . __PS_BASE_URI__ . 'sitemap.xml</b></a></p><br />';
 			
-			$this->_html .= $this->l ( 'Update:' ) . ' <b>' . utf8_encode ( strftime ( '%A %d %B %Y %H:%M:%S', $fstat ['mtime'] ) ) . '</b><br />';
-			$this->_html .= $this->l ( 'Filesize:' ) . ' <b>' . number_format ( ($fstat ['size'] * .000001), 3 ) . 'MB</b><br />';
-			$this->_html .= $this->l ( 'Indexed pages:' ) . ' <b>' . $this->_nbLocs . '</b><br />';
+			$this->_html .= $this->l('Update:') . ' <b>' . utf8_encode ( strftime ( '%A %d %B %Y %H:%M:%S', $fstat ['mtime'] ) ) . '</b><br />';
+			$this->_html .= $this->l('Filesize:') . ' <b>' . number_format ( ($fstat ['size'] * .000001), 3 ) . 'MB</b><br />';
 			if (Tools::isSubmit ( 'btnSubmit' ))
-				$this->_html .= $this->l ( 'Indexed images:' ) . ' <b>' . $this->_nbImages . '</b><br /><br />';
-			else
-				$this->_html .= '<br />';
+            {
+                $this->_html .= $this->l('Indexed pages:') . ' <b>' . $this->_nbLocs . '</b><br />';
+            	$this->_html .= $this->l('Indexed images:') . ' <b>' . $this->_nbImages . '</b>';
+            }
+                
+            $this->_html .= '</div>';
 		}
 	}
 	
@@ -372,27 +411,35 @@ XML;
 			        $("#GADVSITEMAP_SECURE_KEY").hide().val(password).fadeIn("slow");
 			        return false;
 			    });
+                
+                $("#btnSubmit").click(function() {
+                    if($("#form_gadvsitemap .lang_checkbox:checked").size() == 0)
+                    {   
+                        alert("' . $this->l('You must select at least one language.') . '");
+                        return false;
+                    }
+                });
 		    });
 		</script>';
 		
-		$this->_html .= '<form action="' . Tools::htmlentitiesUTF8 ( $_SERVER ['REQUEST_URI'] ) . '" method="post">
+		$this->_html .= '<form id="form_gadvsitemap" action="' . Tools::htmlentitiesUTF8 ( $_SERVER ['REQUEST_URI'] ) . '" method="post">
 			<div style="margin:0 0 20px 0;">
-				<input type="checkbox" name="GSITEMAP_ALL_PRODUCTS" id="GSITEMAP_ALL_PRODUCTS" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GSITEMAP_ALL_PRODUCTS' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GSITEMAP_ALL_PRODUCTS">' . $this->l ( 'Sitemap also includes products from inactive categories' ) . '</label>
+				<input type="checkbox" name="GSITEMAP_ALL_PRODUCTS" id="GSITEMAP_ALL_PRODUCTS" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GSITEMAP_ALL_PRODUCTS' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GSITEMAP_ALL_PRODUCTS">' . $this->l('Sitemap also includes products from inactive categories') . '</label>
 			</div>
 			<div style="margin:0 0 20px 0;">
-				<input type="checkbox" name="GSITEMAP_ALL_CMS" id="GSITEMAP_ALL_CMS" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GSITEMAP_ALL_CMS' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GSITEMAP_ALL_CMS">' . $this->l ( 'Sitemap also includes CMS pages which are not in a CMS block' ) . '</label>
+				<input type="checkbox" name="GSITEMAP_ALL_CMS" id="GSITEMAP_ALL_CMS" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GSITEMAP_ALL_CMS' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GSITEMAP_ALL_CMS">' . $this->l('Sitemap also includes CMS pages which are not in a CMS block') . '</label>
 			</div>
 			
-			<h2>' . $this->l ( 'Search engines pinging' ) . '</h2>
+			<h2>' . $this->l('Search engines pinging') . '</h2>
 			
 			<div style="margin:0 0 20px 0;">
-				<input type="checkbox" name="GADVSITEMAP_NOTIFY" id="GADVSITEMAP_NOTIFY" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GADVSITEMAP_NOTIFY' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GADVSITEMAP_NOTIFY">' . $this->l ( 'Send this sitemap to Google index' ) . '</label>
+				<input type="checkbox" name="GADVSITEMAP_NOTIFY" id="GADVSITEMAP_NOTIFY" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GADVSITEMAP_NOTIFY' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GADVSITEMAP_NOTIFY">' . $this->l('Send this sitemap to Google index') . '</label>
 			</div>
             <div style="margin:0 0 20px 0;">
-				<input type="checkbox" name="GADVSITEMAP_NOTIFY_BING" id="GADVSITEMAP_NOTIFY_BING" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GADVSITEMAP_NOTIFY_BING' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GADVSITEMAP_NOTIFY_BING">' . $this->l ( 'Send this sitemap to Bing index (Yahoo index has moved to Bing)' ) . '</label>
+				<input type="checkbox" name="GADVSITEMAP_NOTIFY_BING" id="GADVSITEMAP_NOTIFY_BING" style="vertical-align: middle;" value="1" ' . (Configuration::get ( 'GADVSITEMAP_NOTIFY_BING' ) ? 'checked="checked"' : '') . ' /> <label class="t" for="GADVSITEMAP_NOTIFY_BING">' . $this->l('Send this sitemap to Bing index (Yahoo index has moved to Bing)') . '</label>
 			</div>
 			
-			<h2>' . $this->l ( 'Languages' ) . '</h2>';
+			<h2>' . $this->l('Languages') . '</h2>';
 		$langs = Language::getLanguages ( true );
 		foreach ( $langs as $lang ) {
 			$iso_code = $lang ['iso_code'];
@@ -406,39 +453,90 @@ XML;
 				$url = Tools::getShopDomain ( true, true ) . __PS_BASE_URI__;
 			
 			$this->_html .= '<div style="margin:0 0 20px 0;">
-					<input type="checkbox" name="' . $iso_code . '" id="' . $iso_code . '" style="vertical-align: middle;" value="1" ' . (Configuration::get ( $iso_code ) ? 'checked="checked"' : '') . ' /> <label class="t" for="' . $iso_code . '">' . $lang ['name'] . '</label><br />
+					<input type="checkbox" name="' . $iso_code . '" id="' . $iso_code . '" class="lang_checkbox" style="vertical-align: middle;" value="1" ' . (Configuration::get ( $iso_code ) ? 'checked="checked"' : '') . ' /> <label class="t" for="' . $iso_code . '">' . $lang ['name'] . '</label><br />
 					<label class="t">URL : <input type="text" name="' . $iso_code . '_url" id="' . $iso_code . '_url" size="50" value="' . $url . '"/></label>
 				</div>';
 		}
 		
 		if (! Configuration::get ( 'PS_REWRITING_SETTINGS' )) {
 			$this->_html .= '<h3 class="alert error" style="margin-bottom: 20px">
-										' . $this->l ( 'Friendly URLs are required if you want to modify those.' ) . '
+										' . $this->l('Friendly URLs are required if you want to modify those.') . '
 								 </h3>';
 		}
 		
-		$this->_html .= '<h2>' . $this->l ( 'Cron' ) . '</h2>
+		$this->_html .= '<h2>' . $this->l('Cron') . '</h2>
 				<div style="margin:0 0 20px 0;">
-					<label class="t">Secure key : 
+					<label class="t">'. $this->l('Secure key : ').'
 						<input type="text" size="40" name="GADVSITEMAP_SECURE_KEY" id="GADVSITEMAP_SECURE_KEY" value="'.Configuration::get ( 'GADVSITEMAP_SECURE_KEY' ).'" />
 					</label>
-					<button id="GADVSITEMAP_SECURE_KEY_GENERATE">Generate</button>';
+					<button id="GADVSITEMAP_SECURE_KEY_GENERATE">'. $this->l('Generate') .'</button>';
 		if (Configuration::get ( 'GADVSITEMAP_CRON_LAST' )) {
-			$this->_html .= '<br />' . $this->l ( 'Last runned' ) . ' : ' . date('Y-m-d H:i:s', Configuration::get ( 'GADVSITEMAP_CRON_LAST' ));
+			$this->_html .= '<br />' . $this->l('Last runned') . ' : ' . date('Y-m-d H:i:s', Configuration::get ( 'GADVSITEMAP_CRON_LAST' ));
 		}
-		
+        $url = Tools::getShopDomain ( true, true ) . __PS_BASE_URI__ . 'modules/gadvsitemap/cron.php?mode=cron&secure_key=[GENERATED_SECURE_KEY]';
+		$this->_html .= '<br /><span>' . $this->l('Cron endpoint') . ' : ' . $url . '</span>';
 		$this->_html .= '</div>';
 		
-		$this->_html .= '<input name="btnSubmit" class="button" type="submit"
-			value="' . ((! file_exists ( GSITEMAP_FILE )) ? $this->l ( 'Generate sitemap file' ) : $this->l ( 'Update sitemap file' )) . '" />
+		$this->_html .= '<input name="btnSubmit" class="button" type="submit" id="btnSubmit"
+			value="' . ((! file_exists ( GSITEMAP_FILE )) ? $this->l('Generate sitemap file') : $this->l('Update sitemap file')) . '" />
 		</form>';
 	
 	}
 	
+    private function _displayGitHubSummary()
+    {
+        $this->_html .= '<div class="gadv_right gadv_bloc gadv_align_right clear">';
+        
+        $tags = GitHub::getSingleRepoTags('seiyar81', 'prestashop-advanced-sitemap');
+        if(!empty($tags))
+        {
+            $this->_html .= '<h4>'.$this->l('GitHub versions').'</h4>';
+            $this->_html .= $this->l('Installed version') . ' : ' . $this->version . '<br /><br />';
+            foreach($tags as $tag)
+            {
+                if(GitHub::compareTag($tag->name, $this->version))
+                    $this->_html .= '<span class="gadv_red"><b>NEW</b></span> ';
+                    
+                $this->_html .= GitHub::formatDownloadLink($tag->name, $tag->zipball_url, $tag->tarball_url) . '<br />';
+            }
+        }
+        
+        $commits = GitHub::getSingleRepoLastCommit('seiyar81', 'prestashop-advanced-sitemap', 3);
+        if(!empty($commits))
+        {
+            $this->_html .= '<h4>'.$this->l('Last GitHub commits').'</h4>';
+            foreach($commits as $commit)
+                $this->_html .= GitHub::formatCommit($commit) . '<br />';
+        }
+        
+        $this->_html .= '</div>';
+    }
+    
+    private function _displayRobots()
+    {
+        if(!file_exists(GROBOTS_FILE))
+        {
+            $this->_html .= '<div class="gadv_right gadv_bloc gadv_align_right clear">';
+            $this->_html .= $this->l('It seems that you don\'t have any robots.txt file.<br /> You should generate one on the SEO & URLs admin page.');
+            $this->_html .= '</div>';   
+        }
+        else
+        {
+            // Vérifier la présence du bon fichier sitemap
+        }
+    }
+    
 	public function getContent() {
-		$this->_html .= '<h2>' . $this->l ( 'Search Engine Optimization' ) . '</h2>
-		' . $this->l ( 'See' ) . ' <a href="http://www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156184&from=40318&rd=1" style="font-weight:bold;text-decoration:underline;" target="_blank">
-		' . $this->l ( 'this page' ) . '</a> ' . $this->l ( 'for more information' ) . '<br /><br />';
+        $this->_html .= '<style>'.file_get_contents(__DIR__ . "/css/gadvsitemap.css").'</style>';
+        $this->_html .= '<div id="gadv_main" class="gadv_bloc">';
+        
+        $this->_displaySitemap ();
+        $this->_displayRobots();
+        $this->_displayGitHubSummary ();
+        
+		$this->_html .= '<h1>' . $this->l('Prestashop Advanced Sitemap') . '</h1>
+		' . $this->l('See') . ' <a href="http://www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156184&from=40318&rd=1" style="font-weight:bold;text-decoration:underline;" target="_blank">
+		' . $this->l('this page') . '</a> ' . $this->l('for more information') . '<br /><br />';
 		if (Tools::isSubmit ( 'btnSubmit' )) {
 			$this->_postValidation ();
 			if (! count ( $this->_postErrors ))
@@ -448,34 +546,49 @@ XML;
 					$this->_html .= '<div class="alert error">' . $err . '</div>';
 		}
 		
-		$this->_displaySitemap ();
 		$this->_displayForm ();
 		
+        $this->_html .= '</div>';
+        
 		return $this->_html;
 	}
 	
 	/**
 	 * Hooks : addproduct, updateproduct, updateProductAttribute, deleteproduct 
 	 */
-	public function hookaddproduct($params) {
+	public function hookaddproduct($params) 
+    {
 		$this->_postProcess ();
 	}
 	
-	public function hookupdateproduct($params) {
+	public function hookupdateproduct($params) 
+    {
 		$this->hookaddproduct ( $params );
 	}
 	
-	public function hookupdateProductAttribute($params) {
+	public function hookupdateProductAttribute($params) 
+    {
 		$this->hookaddproduct ( $params );
 	}
 	
-	public function hookdeleteproduct($params) {
+	public function hookdeleteproduct($params) 
+    {
 		$this->hookaddproduct ( $params );
 	}
 	
-	public function cronTask() {
+	public function cronTask() 
+    {
 		Configuration::updateValue ( 'GADVSITEMAP_CRON_LAST', time() );
 		$this->_postProcess(false);
 	}
+    
+    public function generateRobots()
+    {
+        $backup = null;
+        if(file_exists(GROBOTS_FILE))
+        {
+            $backup = file_get_contents(GROBOTS_FILE);
+        }
+    }
 	
 }

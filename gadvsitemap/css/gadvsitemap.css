@@ -1,5 +1,4 @@
-<?php
-/*
+/**
 * Prestashop Advanced Sitemap
 *
 *  @author Yriase <postmaster@yriase.fr>
@@ -13,20 +12,10 @@
 *
 */
 
-include(dirname(__FILE__).'/../../config/config.inc.php');
-include(dirname(__FILE__).'/gadvsitemap.php');
-require(_PS_ADMIN_DIR_.'/functions.php');
+.gadv_right { float: right; margin: 1em 1em 0 0; }
 
-if (isset($_GET['secure_key']))
-{
-	Configuration::loadConfiguration();
-	$secureKey = Configuration::get('GADVSITEMAP_SECURE_KEY');
-	if (!empty($secureKey) && $secureKey === $_GET['secure_key'])
-	{
-		$gadvsitemap = new gadvsitemap();
-        if(isset($_GET['mode']) && $_GET['mode'] == 'cron')
-		    $gadvsitemap->cronTask();
-        else if(isset($_GET['mode']) && $_GET['mode'] == 'robots')
-            $gadvsitemap->generateRobots();
-	}
-}
+.gadv_align_right { text-align: right; }
+
+.gadv_bloc { background-color: rgb(235, 237, 244); border: 1px solid rgb(204, 206, 215); padding: 1em; }
+
+.gadv_red { color: red }
