@@ -34,7 +34,7 @@ $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_0033cf1fdbd4354facfaa51f6f0de6a4'
 $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_8db779c071debf9079be0acadad39490'] = 'GitHub versions';
 $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_569df326497fb0d637986f21ddcb378f'] = 'Installed version';
 $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_f731195e9efff3dc604e7e42d52dd890'] = 'Last GitHub commits';
-$_MODULE['<{gadvsitemap}prestashop>gadvsitemap_89895a5a6ee371d5b137b6162e0cf74a'] = 'It seems that you don\'t have any robots.txt file. You should generate one on the SEO & URLs admin page.';
+$_MODULE['<{gadvsitemap}prestashop>gadvsitemap_0cdcf7163b1b6e41a7ddceec1fefda76'] = 'It seems that you don\'t have any robots.txt file. You should generate one on the SEO & URLs admin page.';
 $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_4ff2e716a7d06ce5274b4090b39abad3'] = 'See';
 $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_8334797b9b3383d4f48d98178b8845ea'] = 'this page';
 $_MODULE['<{gadvsitemap}prestashop>gadvsitemap_abf27597777430142de13ed6eea36d75'] = 'for more information';

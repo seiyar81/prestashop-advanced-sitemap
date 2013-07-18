@@ -328,7 +328,7 @@ XML;
 	}
 	
 	private function _addSitemapNode($xml, $loc, $priority, $change_freq, $last_mod = NULL) {
-		$this->_nbLocs ++;
+		$this->_nbLocs++;
 		$sitemap = $xml->addChild ( 'url' );
 		$sitemap->addChild ( 'loc', $loc );
 		$sitemap->addChild ( 'priority', number_format ( $priority, 1, '.', '' ) );
@@ -341,7 +341,7 @@ XML;
 	private function _addSitemapNodeImage($xml, $product, $link, $lang) {
 		if (isset ( $product ['images'] ))
 			foreach ( $product ['images'] as $img ) {
-				$this->_nbImages ++;
+				$this->_nbImages++;
 				$image = $xml->addChild ( 'image', null, 'http://www.google.com/schemas/sitemap-image/1.1' );
 				
 				if (Configuration::get ( 'PS_REWRITING_SETTINGS' ))
@@ -441,19 +441,24 @@ XML;
 			
 			<h2>' . $this->l('Languages') . '</h2>';
 		$langs = Language::getLanguages ( true );
-		foreach ( $langs as $lang ) {
-			$iso_code = $lang ['iso_code'];
+		foreach ( $langs as $lang ) 
+        {
+            $iso_code = $lang ['iso_code'];
 			
-			if (Configuration::get ( 'PS_REWRITING_SETTINGS' )) {
+			if (Configuration::get ( 'PS_REWRITING_SETTINGS' )) 
+            {
 				$url = Tools::getShopDomain ( true, true ) . __PS_BASE_URI__ . $lang ['iso_code'] . '/';
-				if (Configuration::get ( 'GADVSITEMAP_' . $lang ['iso_code'] . '_URL' )) {
+				if (Configuration::get ( 'GADVSITEMAP_' . $lang ['iso_code'] . '_URL' )) 
+                {
 					$url = Configuration::get ( 'GADVSITEMAP_' . $lang ['iso_code'] . '_URL' );
 				}
-			} else
+			} 
+            else
 				$url = Tools::getShopDomain ( true, true ) . __PS_BASE_URI__;
 			
-			$this->_html .= '<div style="margin:0 0 20px 0;">
-					<input type="checkbox" name="' . $iso_code . '" id="' . $iso_code . '" class="lang_checkbox" style="vertical-align: middle;" value="1" ' . (Configuration::get ( $iso_code ) ? 'checked="checked"' : '') . ' /> <label class="t" for="' . $iso_code . '">' . $lang ['name'] . '</label><br />
+			$this->_html .= '<div class="gadv_lang_checkbox">
+					<input type="checkbox" name="' . $iso_code . '" id="' . $iso_code . '" class="lang_checkbox" style="vertical-align: middle;" value="1" ' . (Configuration::get ( $iso_code ) ? 'checked="checked"' : '') . ' /> 
+                    <label class="t" for="' . $iso_code . '"><img src="'._PS_IMG_ .'l/'.$lang['id_lang'].'.jpg" />    '. $lang ['name'] . '</label><br />
 					<label class="t">URL : <input type="text" name="' . $iso_code . '_url" id="' . $iso_code . '_url" size="50" value="' . $url . '"/></label>
 				</div>';
 		}
@@ -530,23 +535,24 @@ XML;
         $this->_html .= '<style>'.file_get_contents(__DIR__ . "/css/gadvsitemap.css").'</style>';
         $this->_html .= '<div id="gadv_main" class="gadv_bloc">';
         
-        $this->_displaySitemap ();
-        $this->_displayRobots();
-        $this->_displayGitHubSummary ();
-        
-		$this->_html .= '<h1>' . $this->l('Prestashop Advanced Sitemap') . '</h1>
-		' . $this->l('See') . ' <a href="http://www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156184&from=40318&rd=1" style="font-weight:bold;text-decoration:underline;" target="_blank">
-		' . $this->l('this page') . '</a> ' . $this->l('for more information') . '<br /><br />';
-		if (Tools::isSubmit ( 'btnSubmit' )) {
+        if (Tools::isSubmit ( 'btnSubmit' )) {
 			$this->_postValidation ();
 			if (! count ( $this->_postErrors ))
-				$this->_postProcess ();
+				$this->_postProcess();
 			else
 				foreach ( $this->_postErrors as $err )
 					$this->_html .= '<div class="alert error">' . $err . '</div>';
 		}
+        
+        $this->_displaySitemap ();
+        $this->_displayRobots();
+        $this->_displayGitHubSummary ();
+        
+		$this->_html .= '<h1 id="gadv_main_title">' . $this->l('Prestashop Advanced Sitemap') . '</h1>
+		' . $this->l('See') . ' <a href="http://www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156184&from=40318&rd=1" style="font-weight:bold;text-decoration:underline;" target="_blank">
+		' . $this->l('this page') . '</a> ' . $this->l('for more information') . '<br /><br />';
 		
-		$this->_displayForm ();
+		$this->_displayForm();
 		
         $this->_html .= '</div>';
         
@@ -558,22 +564,22 @@ XML;
 	 */
 	public function hookaddproduct($params) 
     {
-		$this->_postProcess ();
+		$this->_postProcess();
 	}
 	
 	public function hookupdateproduct($params) 
     {
-		$this->hookaddproduct ( $params );
+		$this->hookaddproduct( $params );
 	}
 	
 	public function hookupdateProductAttribute($params) 
     {
-		$this->hookaddproduct ( $params );
+		$this->hookaddproduct( $params );
 	}
 	
 	public function hookdeleteproduct($params) 
     {
-		$this->hookaddproduct ( $params );
+		$this->hookaddproduct( $params );
 	}
 	
 	public function cronTask() 

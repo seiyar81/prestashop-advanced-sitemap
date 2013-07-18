@@ -12,6 +12,8 @@
 *
 */
 
+#gadv_main_title { background: url('../modules/gadvsitemap/logo.png') top left no-repeat; text-indent: 36px; font-size: 2em; }
+
 .gadv_right { float: right; margin: 1em 1em 0 0; }
 
 .gadv_align_right { text-align: right; }
@@ -19,3 +21,6 @@
 .gadv_bloc { background-color: rgb(235, 237, 244); border: 1px solid rgb(204, 206, 215); padding: 1em; }
 
 .gadv_red { color: red }
+
+.gadv_lang_checkbox { margin:0 0 20px 0; }
+.gadv_lang_checkbox img { margin-right: 5px }
