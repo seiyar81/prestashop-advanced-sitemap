@@ -1,12 +1,3 @@
-
- QScintilla is Copyright (C) 2011 Riverbank Computing Limited
-                                            <info@riverbankcomputing.com>
-
- You may use, distribute and copy QScintilla under the terms of GNU
- General Public License version 3, which is displayed below.
-
--------------------------------------------------------------------------
-
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -682,4 +673,9 @@ the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <http://www.gnu.org/philosophy/why-not-lgpl.html>.
 
--------------------------------------------------------------------------
+
+-----------------------------------------------------------------------
+
+
+Prestashop Advanced Sitemap Licensed to Wikimedia Commons 
+At http://commons.wikimedia.org/wiki/Farm-Fresh_Web_Icons

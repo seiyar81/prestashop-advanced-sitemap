@@ -1,4 +1,4 @@
-prestashop-advanced-sitemap
+Prestashop Advanced Sitemap
 ===========================
 
 - Advanced sitemap configuration for Prestashop.
@@ -7,6 +7,7 @@ prestashop-advanced-sitemap
 - Search engines pinging
 - Automatic sitemap rewriting (new product etc ...)
 - Secured Cron endpoint 
+- Updates notifications
 
 License
 ===========================
