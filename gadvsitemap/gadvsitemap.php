@@ -3,7 +3,7 @@
 * Prestashop Advanced Sitemap
 *
 *  @author Yriase <postmaster@yriase.fr>
-*  @version  1.4.5.1
+*  @version  1.4.5.2
 *
 * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
 * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR 
@@ -28,7 +28,7 @@ class gadvsitemap extends Module {
 	public function __construct() {
 		$this->name = 'gadvsitemap';
 		$this->tab = 'seo';
-		$this->version = '1.4.5.1';
+		$this->version = '1.4.5.2';
 		$this->author = 'Yriase';
 		$this->need_instance = 0;
 		
