@@ -19,17 +19,18 @@ if (! defined ( '_PS_VERSION_' ))
 require_once 'classes/gadvlink.php';
 require_once 'classes/github.php';
 
-class gadvsitemap extends Module {
+class prestashopadvancedsitemap extends Module {
 	private $_html = '';
 	private $_postErrors = array ();
 	private $_nbImages = 0;
 	private $_nbLocs = 0;
 	
 	public function __construct() {
-		$this->name = 'gadvsitemap';
+		$this->name = 'prestashopadvancedsitemap';
 		$this->tab = 'seo';
 		$this->version = '1.4.5.2';
 		$this->author = 'Yriase';
+		$this->module_key = 'e45a405ffcd2e4aed2105bd05470ae7a';
 		$this->need_instance = 0;
 		
 		parent::__construct ();
@@ -478,7 +479,7 @@ XML;
 		if (Configuration::get ( 'GADVSITEMAP_CRON_LAST' )) {
 			$this->_html .= '<br />' . $this->l('Last runned') . ' : ' . date('Y-m-d H:i:s', Configuration::get ( 'GADVSITEMAP_CRON_LAST' ));
 		}
-        $url = Tools::getShopDomain ( true, true ) . __PS_BASE_URI__ . 'modules/gadvsitemap/cron.php?mode=cron&secure_key=[GENERATED_SECURE_KEY]';
+        $url = Tools::getShopDomain ( true, true ) . __PS_BASE_URI__ . 'modules/prestashopadvancedsitemap/cron.php?mode=cron&secure_key=[GENERATED_SECURE_KEY]';
 		$this->_html .= '<br /><span>' . $this->l('Cron endpoint') . ' : ' . $url . '</span>';
 		$this->_html .= '</div>';
 		
