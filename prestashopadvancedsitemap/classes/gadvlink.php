@@ -164,14 +164,14 @@ class gadvLink extends Link
 			&& (file_exists(_PS_PROD_IMG_DIR_.$ids.($type ? '-'.$type : '').'.jpg')))
 			|| strpos($ids, 'default') !== false)
 		{
-            $uri_path = $this->_langsUrl[(int)$id_lang] . $ids.($type ? '-'.$type : '').'/'.$name.'.jpg';
+            $uri_path = $this->_baseUrl . $ids.($type ? '-'.$type : '').'/'.$name.'.jpg';
 		}else
 		{
 			// if ids if of the form id_product-id_image, we want to extract the id_image part
 			$split_ids = explode('-', $ids);
 			$id_image = (isset($split_ids[1]) ? $split_ids[1] : $split_ids[0]);
 			
-            $uri_path = $this->_langsUrl[(int)$id_lang] . $id_image.($type ? '-'.$type : '').'/'.$name.'.jpg';
+            $uri_path = $this->_baseUrl . $id_image.($type ? '-'.$type : '').'/'.$name.'.jpg';
 		}
 		
 		return $uri_path;

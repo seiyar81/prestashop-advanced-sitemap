@@ -24,6 +24,7 @@ class prestashopadvancedsitemap extends Module {
 	private $_postErrors = array ();
 	private $_nbImages = 0;
 	private $_nbLocs = 0;
+    private $_imageTypes = array();
 	
 	public function __construct() {
 		$this->name = 'prestashopadvancedsitemap';
@@ -113,6 +114,8 @@ class prestashopadvancedsitemap extends Module {
             }
             
 			$this->_nbImages = 0;
+            
+            $this->_imageTypes = ImageType::getImagesTypes('products');
 			
 			$xmlString = <<<XML
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -341,20 +344,27 @@ XML;
 	
 	private function _addSitemapNodeImage($xml, $product, $link, $lang) {
 		if (isset ( $product ['images'] ))
-			foreach ( $product ['images'] as $img ) {
-				$this->_nbImages++;
-				$image = $xml->addChild ( 'image', null, 'http://www.google.com/schemas/sitemap-image/1.1' );
-				
-				if (Configuration::get ( 'PS_REWRITING_SETTINGS' ))
-					$tmpLink = $link->getImageLink ( $product ['link_rewrite'], ( int ) $product ['id_product'] . '-' . ( int ) $img ['id_image'], $lang );
-				else
-					$tmpLink = $link->getImageLink ( $product ['link_rewrite'], ( int ) $product ['id_product'] . '-' . ( int ) $img ['id_image'] );
-				
-				$image->addChild ( 'loc', $tmpLink, 'http://www.google.com/schemas/sitemap-image/1.1' );
-				
-				$legend_image = preg_replace ( '/(&+)/i', '&amp;', $img ['legend_image'] );
-				$image->addChild ( 'caption', $legend_image, 'http://www.google.com/schemas/sitemap-image/1.1' );
-				$image->addChild ( 'title', $legend_image, 'http://www.google.com/schemas/sitemap-image/1.1' );
+			foreach ( $product ['images'] as $img ) 
+            {
+                if(!empty($this->_imageTypes))
+                {
+                    foreach($this->_imageTypes as $imgType)
+                    {
+        				$this->_nbImages++;
+        				$image = $xml->addChild ( 'image', null, 'http://www.google.com/schemas/sitemap-image/1.1' );
+        				
+        				if (Configuration::get ( 'PS_REWRITING_SETTINGS' ))
+        					$tmpLink = $link->getImageLink ( $product ['link_rewrite'], ( int ) $product ['id_product'] . '-' . ( int ) $img ['id_image'], $lang, $imgType['name'] );
+        				else
+        					$tmpLink = $link->getImageLink ( $product ['link_rewrite'], ( int ) $product ['id_product'] . '-' . ( int ) $img ['id_image'], $imgType['name'] );
+        				
+        				$image->addChild ( 'loc', $tmpLink, 'http://www.google.com/schemas/sitemap-image/1.1' );
+        				
+        				$legend_image = preg_replace ( '/(&+)/i', '&amp;', $img ['legend_image'] );
+        				$image->addChild ( 'caption', $legend_image, 'http://www.google.com/schemas/sitemap-image/1.1' );
+        				$image->addChild ( 'title', $legend_image, 'http://www.google.com/schemas/sitemap-image/1.1' );
+                    }
+                }
 			}
 	}
 	
