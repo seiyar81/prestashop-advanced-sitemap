@@ -3,6 +3,8 @@ Prestashop Advanced Sitemap
 
 - Advanced sitemap configuration for Prestashop.
 - Supports multi-languages
+- Multiple sitemap generation
+- Sitemap compression
 - Configurable URLs
 - Search engines pinging
 - Automatic sitemap rewriting (new product etc ...)

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<module>
-	<name>prestashopadvancedsitemap</name>
-	<displayName><![CDATA[Prestashop Advanced Sitemap]]></displayName>
-	<version><![CDATA[1.4.5.2]]></version>
-	<description><![CDATA[G&eacute;n&eacute;rez votre fichier sitemap avec des options avanc&eacute;es]]></description>
-	<author><![CDATA[Yriase]]></author>
-	<tab><![CDATA[seo]]></tab>
-	<is_configurable>1</is_configurable>
-	<need_instance>0</need_instance>
+        <module>
+            <name>prestashopadvancedsitemap</name>
+            <displayName><![CDATA[Prestashop Advanced Sitemap]]></displayName>
+            <version><![CDATA[1.5]]></version>
+            <description><![CDATA[G&eacute;n&eacute;rez votre fichier sitemap avec des options avanc&eacute;es]]></description>
+            <author><![CDATA[Yriase]]></author>
+            <tab><![CDATA[seo]]></tab>
+            <is_configurable>1</is_configurable>
+            <need_instance>0</need_instance>
 	<limited_countries></limited_countries>
-</module>
+        </module>

@@ -3,7 +3,7 @@
 * Prestashop Advanced Sitemap
 *
 *  @author Yriase <postmaster@yriase.fr>
-*  @version  1.4.5.2
+*  @version  1.5
 *
 * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
 * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR 
@@ -13,7 +13,7 @@
 *
 */
 
-class gadvLink extends Link
+class padvLink extends Link
 {
     
 	private $_baseUrl = '';
@@ -155,7 +155,7 @@ class gadvLink extends Link
             return ltrim($uri_path, '/');
 	}
         
-        public function getImageLink($name, $ids, $id_lang, $type = NULL)
+        public function getImageLink($name, $ids, $type, $id_lang)
 	{
 		global $protocol_content;
         $uri_path = '';
