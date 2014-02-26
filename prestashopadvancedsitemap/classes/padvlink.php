@@ -3,7 +3,7 @@
 * Prestashop Advanced Sitemap
 *
 *  @author Yriase <postmaster@yriase.fr>
-*  @version  1.5
+*  @version  1.5.1
 *
 * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
 * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR 
@@ -43,6 +43,8 @@ class padvLink extends Link
 	
 	public function setLangUrl($id_lang, $url)
 	{
+		if(substr($url, -1) != '/')
+			$url .= '/';
 		$this->_langsUrl[$id_lang] = $url;
 	}
 	

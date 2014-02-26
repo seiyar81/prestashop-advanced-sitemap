@@ -4,7 +4,7 @@
  * Prestashop Advanced Sitemap
  *
  *  @author Yriase <postmaster@yriase.fr>
- *  @version  1.5
+ *  @version  1.5.1
  *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR 
@@ -449,10 +449,10 @@ XML;
         $this->_nbLocs++;      
         $sitemap = $xml->addChild('url');
         $sitemap->addChild('loc', $loc);
-        $sitemap->addChild('priority', number_format($priority, 1, '.', ''));
         if ($last_mod)
             $sitemap->addChild('lastmod', $last_mod);
         $sitemap->addChild('changefreq', $change_freq);
+		$sitemap->addChild('priority', number_format($priority, 1, '.', ''));
         
         $this->_multi_item_count++;
         
